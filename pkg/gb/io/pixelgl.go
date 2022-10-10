@@ -1,8 +1,11 @@
 package io
 
 import (
+	"fmt"
 	"image/color"
+	"image/png"
 	"log"
+	"os"
 
 	"math"
 
@@ -23,13 +26,14 @@ type PixelsIOBinding struct {
 // NewPixelsIOBinding returns a new Pixelsgl IOBinding
 func NewPixelsIOBinding(enableVSync bool, gameboy *gb.Gameboy) *PixelsIOBinding {
 	windowConfig := pixelgl.WindowConfig{
-		Title: "GoBoy",
+		//Title: "GoBoy",
 		Bounds: pixel.R(
 			0, 0,
-			float64(gb.ScreenWidth*PixelScale), float64(gb.ScreenHeight*PixelScale),
+			160, 144,
 		),
-		VSync:     enableVSync,
-		Resizable: true,
+		VSync:       enableVSync,
+		Resizable:   false,
+		Undecorated: true,
 	}
 
 	window, err := pixelgl.NewWindow(windowConfig)
@@ -54,6 +58,30 @@ func NewPixelsIOBinding(enableVSync bool, gameboy *gb.Gameboy) *PixelsIOBinding 
 	monitor.updateCamera()
 
 	return &monitor
+}
+
+var SC = false
+
+func Screenshot(win *pixelgl.Window) {
+	fmt.Println("taking screenshot...")
+
+	f, err := os.Create("screenshot.png")
+	if err != nil {
+		panic(err)
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(f)
+	img := pixel.PictureDataFromPicture(win)
+	err = png.Encode(f, img.Image())
+	if err != nil {
+		return
+	}
+
+	fmt.Println("done")
 }
 
 // updateCamera updates the window camera to center the output.
@@ -83,6 +111,44 @@ func (mon *PixelsIOBinding) Render(screen *[160][144][3]uint8) {
 		}
 	}
 
+	if mon.window.JustPressed(pixelgl.KeyT) {
+		// ----
+		// Screenshot(window)
+		//if SC {
+		eikona := mon.picture.Image()
+		if eikona.ColorModel() == color.RGBAModel {
+			//32-bit RGBA color, each R,G,B, A component requires 8-bits
+			fmt.Println("RGBA")
+		} else if eikona.ColorModel() == color.GrayModel {
+			//8-bit grayscale
+			fmt.Println("Gray")
+		} else if eikona.ColorModel() == color.NRGBAModel {
+			//32-bit non-alpha-premultiplied RGB color, each R,G,B component requires 8-bits
+			fmt.Println("NRGBA")
+		} else if eikona.ColorModel() == color.NYCbCrAModel {
+			//32-bit non-alpha-premultiplied YCbCr color, each Y,Cb,Cr component requires 8-bits
+			fmt.Println("NYCbCrA")
+		} else if eikona.ColorModel() == color.YCbCrModel {
+			//24-bit YCbCr color, each Y,Cb,Cr component requires 8-bits
+			fmt.Println("YCbCr")
+		} else {
+			fmt.Println("Unknown")
+		}
+		f, err := os.Create("screenshot.png")
+		if err != nil {
+			panic(err)
+		}
+		defer func(f *os.File) {
+			err := f.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(f)
+		// encode as .png to the file
+		err = png.Encode(f, eikona)
+	}
+	// ----
+
 	r, g, b := gb.GetPaletteColour(3)
 	bg := color.RGBA{R: r, G: g, B: b, A: 0xFF}
 	mon.window.Clear(bg)
@@ -91,6 +157,7 @@ func (mon *PixelsIOBinding) Render(screen *[160][144][3]uint8) {
 	spr.Draw(mon.window, pixel.IM)
 
 	mon.updateCamera()
+	// fmt.Println(mon.window.Bounds().Size())
 	mon.window.Update()
 }
 
@@ -101,15 +168,7 @@ func (mon *PixelsIOBinding) SetTitle(title string) {
 
 // Toggle the fullscreen window on the main monitor.
 func (mon *PixelsIOBinding) toggleFullscreen() {
-	if mon.window.Monitor() == nil {
-		monitor := pixelgl.PrimaryMonitor()
-		_, height := monitor.Size()
-		mon.window.SetMonitor(monitor)
-		PixelScale = height / 144
-	} else {
-		mon.window.SetMonitor(nil)
-		PixelScale = 3
-	}
+	mon.window.SetBounds(pixel.R(0, 0, 160, 144))
 }
 
 var keyMap = map[pixelgl.Button]gb.Button{

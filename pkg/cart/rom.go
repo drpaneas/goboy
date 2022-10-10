@@ -18,7 +18,7 @@ func (r *ROM) Read(address uint16) byte {
 	return r.rom[address]
 }
 
-// WriteROM would switch between cartridge banks, however a ROM cart does
+// WriteROM would switch between cartridge banks, howeve r a ROM cart does
 // not support banking.
 func (r *ROM) WriteROM(address uint16, value byte) {}
 

@@ -217,7 +217,7 @@ func NewCart(rom []byte, filename string) *Cart {
 	return &cartridge
 }
 
-// Open the file and load the data out of it as an array of bytes. If the file is
+// Open the file and load the data out of it as an array of bygb.CPU.Init()tes. If the file is
 // a zip file containing one file, then open that as the rom instead.
 func loadROMData(filename string) ([]byte, error) {
 	var data []byte
